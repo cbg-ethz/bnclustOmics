@@ -1,0 +1,15 @@
+Package: bnclustOmics
+Title: Bayesian network-based clustering of multi-omics data
+Version: 1.0.7
+Authors@R: c(person(given = "Polina", family = "Suter",role = c("aut", "cre"),email = "polina.suter@bsse.ethz.ch"), person(given = "Jack",family = "Kuipers",role = c("aut"),email = "jack.kuipers@bsse.ethz.ch"))
+Description: This package can be used for Bayesian network-based clustering of multi-omics data. Both binary and continuous data types
+    are allowed as inputs. The package serves a dual purpose: it clusters patient samples and learns the multi-omics networks that characterize discovered
+    clusters. Prior network knowledge (e.g. from interaction databases) can be included via blacklisting and 
+    penalization matrices. The output includes membership vector, cluster-specific MAP networks, and posterior probabilities
+    of all edges in all networks. In addition to likelihood, AIC and BIC scores are returned. 
+License: GPL-3
+Imports: BiDAG, mclust, clue, stats, RBGL, graph, gRbase
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.2
