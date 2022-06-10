@@ -2,7 +2,7 @@
 % Please edit documentation in R/clustDBN.R
 \name{clustDBN}
 \alias{clustDBN}
-\title{DBN based clustering}
+\title{DBN-based clustering}
 \usage{
 clustDBN(
   dbndata,
@@ -72,10 +72,10 @@ clustDBN(
 \item{pickmax}{(logical) if TRUE only maximum EM run is returned}
 }
 \value{
-object of class 'bnclustOmics'
+object of class 'bnclustOmics' containing the results of Bayesian-network based clustering: cluster assignments, networks representing the clusters
 }
 \description{
-DBN-based clustering of continuous data
+This function can be used for DBN-based clustering. It is the same function as bnclustOmics, but it also works for time series data.
 }
 \author{
 Polina Suter

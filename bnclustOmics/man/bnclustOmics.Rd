@@ -26,7 +26,7 @@ bnclustOmics(
 )
 }
 \arguments{
-\item{omicdata}{a list of matrices orresponding to omics types: "M", "CN", "T", "P" and "PP"; at least one continuous type must be present}
+\item{omicdata}{a list of matrices corresponding to omics types. For example, "M" (mutations), "CN" (copy numbers), "T" (transcriptome), "P" (proteome) and "PP" (phosphoproteome); at least one continuous type must be present}
 
 \item{bnnames}{object of class 'bnInfo'; see constructor function \link{bnInfo}}
 
@@ -50,7 +50,7 @@ bnclustOmics(
 
 \item{nit}{number of internal iteration (of parameter estimation) in the EM}
 
-\item{epmatrix}{(logical) indicates if the matrices containing posterior probabilities of single edges should be returned}
+\item{epmatrix}{(logical) indicates if the matrices containing posterior probabilities of single edges are be returned}
 
 \item{plus1it}{maximum number of search space expansion iterations when performing structure search}
 
@@ -63,10 +63,24 @@ bnclustOmics(
 \item{verbose}{defines if the output messages should be printed}
 }
 \value{
-object of class 'bnclustOmics'
+object of class 'bnclustOmics' containing the results of Bayesian-network based clustering: cluster assignments, networks representing the clusters
 }
 \description{
-Bayesian network-based clustering of multi-omics data.
+Bayesian network-based clustering of multi-omics data. This function implements network-based clustering for multiomics data.
+The mandatory input is a list of matrices consisting from binary, ordinal or continuous variables. Each matrix corresponds to one omics type. At least one
+matrix with continuous variables must be present. Optional output includes the prior information about interactions between genes and gene products. This can be
+passed via parameters blacklist and edgepmat. Interactions in blacklist are excluded from the search space. Edgepmat imposes a graphical prior which
+penalizes certain interactions by a certain penalization factor.
+The output includes cluster assigments and MAP directed acycluc graphs (DAGs) representing discovered clusters.
+Optionally, the output may include posterior probabilities of all edges in the discovered graphs.
+}
+\examples{
+bnnames<-bnInfo(simdata,c("b","c"),c("M","T"))
+\donttest{
+fit<-bnclustOmics(simdata,bnnames,maxEM=4, kclust=2, startpoint = "mclustPCA")
+clusters(fit)
+checkmembership(clusters(fit),simclusters)
+}
 }
 \author{
 Polina Suter, Jack Kuipers

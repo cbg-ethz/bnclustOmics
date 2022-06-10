@@ -2,8 +2,7 @@
 % Please edit documentation in R/penalization.R
 \name{blInit}
 \alias{blInit}
-\title{Initializing blacklist
-This function can be used to initialize a blacklist matrix for bnclustOmics clustering}
+\title{Initializing blacklist}
 \usage{
 blInit(
   bnnames,
@@ -28,7 +27,6 @@ blInit(
 returns a binary matrix where 1 defines prohibited edges and 0 defines allowed edges
 }
 \description{
-Initializing blacklist
 This function can be used to initialize a blacklist matrix for bnclustOmics clustering
 }
 \author{

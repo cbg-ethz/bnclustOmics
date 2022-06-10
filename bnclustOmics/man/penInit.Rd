@@ -2,8 +2,7 @@
 % Please edit documentation in R/penalization.R
 \name{penInit}
 \alias{penInit}
-\title{Initializing penalization matrix
-This function can be used to initialize a penalization matrix for bnclustOmics clustering}
+\title{Initializing penalization matrix}
 \usage{
 penInit(
   bnnames,
@@ -31,7 +30,6 @@ penInit(
 returns a square matrix containing edge specific penalization factors
 }
 \description{
-Initializing penalization matrix
 This function can be used to initialize a penalization matrix for bnclustOmics clustering
 }
 \author{

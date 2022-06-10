@@ -2,15 +2,14 @@
 % Please edit documentation in R/penalization.R
 \name{penUpdateInter}
 \alias{penUpdateInter}
-\title{Updating penalization matrix (between two omics types)
-This function can be used to update an existing penalization matrix}
+\title{Updating penalization matrix (between two omics types)}
 \usage{
 penUpdateInter(
   penmat,
   bnnames,
   type1,
   type2,
-  intlist,
+  intlist = NULL,
   pfbase = 2,
   intpf = 1,
   intsame = 1,
@@ -40,7 +39,6 @@ penUpdateInter(
 returns a square matrix containing edge specific penalization factors
 }
 \description{
-Updating penalization matrix (between two omics types)
 This function can be used to update an existing penalization matrix
 }
 \author{

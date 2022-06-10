@@ -4,15 +4,16 @@
 \alias{checkmembership}
 \title{Comparing estimated and ground truth membership}
 \usage{
-checkmembership(k, truememb, estmemb)
+checkmembership(estmemb, truememb)
 }
 \arguments{
-\item{k}{number of clusters}
+\item{estmemb}{estimated labels}
 
 \item{truememb}{ground truth labels}
-
-\item{estmemb}{estimated labels}
+}
+\value{
+a list containing different measures of similarity between two different clusterings, including accuracy, adjusted Rand index and precision
 }
 \description{
-This function compares ground truth cluster labels to estimated cluster labels.
+This function compares similarity between two clusterings.
 }

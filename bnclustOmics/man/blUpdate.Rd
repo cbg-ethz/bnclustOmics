@@ -2,8 +2,7 @@
 % Please edit documentation in R/penalization.R
 \name{blUpdate}
 \alias{blUpdate}
-\title{Updating  blacklist
-This function can be used to update a blacklist matrix by blacklisting an edge between a pair of variables}
+\title{Updating  blacklist}
 \usage{
 blUpdate(blacklist, node1, node2)
 }
@@ -18,7 +17,6 @@ blUpdate(blacklist, node1, node2)
 returns a binary matrix where 1 defines prohibited interactions and 0 defines allowed interactions
 }
 \description{
-Updating  blacklist
 This function can be used to update a blacklist matrix by blacklisting an edge between a pair of variables
 }
 \author{

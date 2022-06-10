@@ -1,6 +1,6 @@
-#'DBN based clustering
+#'DBN-based clustering
 #'
-#'DBN-based clustering of continuous data
+#'This function can be used for DBN-based clustering. It is the same function as bnclustOmics, but it also works for time series data.
 #'
 #'@param dbndata data matrix; rows are observations, columns are variables; static nodes have to be in the first column of the data
 #'@param staticnodes (integer) number of static nodes in a DBN
@@ -23,7 +23,7 @@
 #'@param verbose defines if the output messages should be printed
 #'@param samestruct (logical) defines if initial and intrinsic part of transition structures should be the same
 #'@param pickmax (logical) if TRUE only maximum EM run is returned
-#'@return object of class 'bnclustOmics'
+#'@return object of class 'bnclustOmics' containing the results of Bayesian-network based clustering: cluster assignments, networks representing the clusters
 #'@author Polina Suter
 #'@export
 clustDBN<-function(dbndata, staticnodes = 0, blacklist=NULL, edgepmat=NULL,
@@ -160,11 +160,9 @@ clustDBNcore<-function(dbndata,b,scoretype,
       }
 
       addspace<-NULL
-      defaultW <- getOption("warn")
-      options(warn = -1)
-      maxfit<-iterativeMCMC(scorepar,addspace=addspace,plus1it=plus1it,hardlimit=hardlim+1,
-                            blacklist=blacklist,verbose=verbose)
-      options(warn = defaultW)
+
+      maxfit<-suppressWarnings(iterativeMCMC(scorepar,addspace=addspace,plus1it=plus1it,hardlimit=hardlim+1,
+                            blacklist=blacklist,verbose=verbose))
       maxorders[[k]]<-maxfit$maxorder
       newsp[[k]]<-maxfit$endspace
       if(!MAP) {
@@ -226,12 +224,10 @@ clustDBNcore<-function(dbndata,b,scoretype,
         scorepar<-BiDAG::scoreparameters("bge",as.data.frame(dbndata), dbnpar = list(samestruct = TRUE, slices = 2, b = b), DBN=TRUE,
                                          weightvector=assignprogress$lambdas[,i],
                                          edgepmat = edgepmat)
-        defaultW <- getOption("warn")
-        options(warn = -1)
-        samplefit[[i]]<-orderMCMC(scorepar,startspace=newsp[[i]],MAP=FALSE,chainout=TRUE,
+
+        samplefit[[i]]<-suppressWarnings(orderMCMC(scorepar,startspace=newsp[[i]],MAP=FALSE,chainout=TRUE,
                                   blacklist=blacklist,
-                                  startorder=maxorders[[i]],iterations = sampiter)
-        options(warn = defaultW)
+                                  startorder=maxorders[[i]],iterations = sampiter))
         consensusscores[,i]<-consensusScoresDBN(scorepar,samplefit[[i]]$traceadd$incidence)
         ep[[i]]<-edgep(samplefit[[i]],pdag=TRUE)
       }

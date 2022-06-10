@@ -1,8 +1,14 @@
 #'Bayesian network based clustering of multi-omics data
 #'
-#'Bayesian network-based clustering of multi-omics data.
+#'Bayesian network-based clustering of multi-omics data. This function implements network-based clustering for multiomics data.
+#'The mandatory input is a list of matrices consisting from binary, ordinal or continuous variables. Each matrix corresponds to one omics type. At least one
+#'matrix with continuous variables must be present. Optional output includes the prior information about interactions between genes and gene products. This can be
+#'passed via parameters blacklist and edgepmat. Interactions in blacklist are excluded from the search space. Edgepmat imposes a graphical prior which
+#'penalizes certain interactions by a certain penalization factor.
+#'The output includes cluster assigments and MAP directed acycluc graphs (DAGs) representing discovered clusters.
+#'Optionally, the output may include posterior probabilities of all edges in the discovered graphs.
 #'
-#'@param omicdata a list of matrices orresponding to omics types: "M", "CN", "T", "P" and "PP"; at least one continuous type must be present
+#'@param omicdata a list of matrices corresponding to omics types. For example, "M" (mutations), "CN" (copy numbers), "T" (transcriptome), "P" (proteome) and "PP" (phosphoproteome); at least one continuous type must be present
 #'@param bnnames object of class 'bnInfo'; see constructor function \link{bnInfo}
 #'@param blacklist adjacency matrix containing information about which edges will be blacklisted in structure search
 #'@param edgepmat penalization matrix of the edges in structure learning
@@ -14,20 +20,28 @@
 #'@param hardlim maximum number of parents per node when learning networks
 #'@param deltahl additional number of parents when sampling from the common search space
 #'@param nit number of internal iteration (of parameter estimation) in the EM
-#'@param epmatrix (logical) indicates if the matrices containing posterior probabilities of single edges should be returned
+#'@param epmatrix (logical) indicates if the matrices containing posterior probabilities of single edges are be returned
 #'@param plus1it maximum number of search space expansion iterations when performing structure search
 #'@param startpoint defines which algorithm is used to define starting cluster memberships: possible values "random", "mclustPCA" and "mclust"
 #'@param baseprob defines the base probability of cluster membership when "mclustPCA" or "mclust" used as starting point
 #'@param commonspace (logical) defines if the sampling has to be performed from the common search space
 #'@param verbose defines if the output messages should be printed
-#'@return object of class 'bnclustOmics'
+#'@return object of class 'bnclustOmics' containing the results of Bayesian-network based clustering: cluster assignments, networks representing the clusters
 #'@author Polina Suter, Jack Kuipers
+#'@examples
+#' bnnames<-bnInfo(simdata,c("b","c"),c("M","T"))
+#'\donttest{
+#'fit<-bnclustOmics(simdata,bnnames,maxEM=4, kclust=2, startpoint = "mclustPCA")
+#'clusters(fit)
+#'checkmembership(clusters(fit),simclusters)
+#'}
 #'@export
 bnclustOmics<-function(omicdata, bnnames, blacklist=NULL, edgepmat=NULL,
                        kclust=2,chixi=0.5, seed=100,err=1e-6, maxEM=10,hardlim=6,
                        deltahl=2, nit=5, epmatrix=TRUE,plus1it=4,
                        startpoint="mclustPCA",baseprob=0.4, commonspace=TRUE,
                        verbose=TRUE){
+
   addcorspace<-NULL
   sampiter<-NULL
   if(is.null(blacklist)) blacklist<-blInit(bnnames)
@@ -52,14 +66,13 @@ bnclustOmics<-function(omicdata, bnnames, blacklist=NULL, edgepmat=NULL,
     pca_res <- prcomp(pcadata, scale. = TRUE)
     startmemb<-Mclust(pca_res$x[,1:(kclust+2)],G=kclust)$classification
   }
-
   res<-bnclustOmicsCore(omicdata,bnnames,scoretype=scoretype,bgnodes=bgnodes,
                         blacklist=blacklist,edgepmat=edgepmat,
                         epmatrix=epmatrix, seed=seed,
                         kclust=kclust,chixi=chixi,MAP=TRUE,
                         maxEM=maxEM,startmemb=startmemb,
                         baseprob=baseprob,addcorspace=addcorspace,hardlim=hardlim,
-                        deltahl=deltahl,
+                        deltahl=deltahl, plus1it=plus1it,
                         sampiter=sampiter,commonspace=commonspace)
 
   res$AIC<-bnclustmodelscore(res,score="AIC",ss=nrow(omicdata),nbin=bnnames$nb)
@@ -135,11 +148,8 @@ bnclustOmicsCore<-function(omicdata,bnnames,scoretype,bgnodes=NULL,
       }
 
       addspace<-NULL
-      defaultW <- getOption("warn")
-      options(warn = -1)
-      maxfit<-iterativeMCMC(scorepar,addspace=addspace,plus1it=plus1it,hardlimit=hardlim+1,
-                            blacklist=blacklist,verbose=verbose)
-      options(warn = defaultW)
+      maxfit<-suppressWarnings(iterativeMCMC(scorepar,addspace=addspace,plus1it=plus1it,hardlimit=hardlim+1,
+                            blacklist=blacklist,verbose=verbose))
       maxorders[[k]]<-maxfit$maxorder
       newsp[[k]]<-maxfit$endspace
       if(!MAP) {
@@ -171,6 +181,7 @@ bnclustOmicsCore<-function(omicdata,bnnames,scoretype,bgnodes=NULL,
     newclustermembership<-reassignsamples(newallrelativeprobabs,nrow(omicdata))
     assignprogress$likel[cnt]<-calcloglike(scoresagainstclusters,tauvec)
     cnt<-cnt+1
+    #if(!is.null(truememb)) print(checkmembership(truememb,newclustermembership))
   }
 
   assignprogress$lambdas<-newallrelativeprobabs
@@ -199,12 +210,9 @@ bnclustOmicsCore<-function(omicdata,bnnames,scoretype,bgnodes=NULL,
         scorepar<-BiDAG::scoreparameters("bge",as.data.frame(omicdata),bgnodes=bgnodes,
                                          weightvector=assignprogress$lambdas[,i],
                                          edgepmat = edgepmat)
-        defaultW <- getOption("warn")
-        options(warn = -1)
-        samplefit[[i]]<-orderMCMC(scorepar,startspace=newsp[[i]],MAP=FALSE,chainout=TRUE,
+        samplefit[[i]]<-suppressWarnings(orderMCMC(scorepar,startspace=newsp[[i]],MAP=FALSE,chainout=TRUE,
                                   blacklist=blacklist,
-                                  startorder=maxorders[[i]],iterations = sampiter)
-        options(warn = defaultW)
+                                  startorder=maxorders[[i]],iterations = sampiter))
         consensusscores[,i]<-consensusScores(scorepar,samplefit[[i]]$traceadd$incidence)
         ep[[i]]<-edgep(samplefit[[i]],pdag=TRUE)
       }

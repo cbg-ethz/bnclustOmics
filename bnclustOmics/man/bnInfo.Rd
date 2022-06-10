@@ -13,11 +13,26 @@ bnInfo(omicdata, types, omics, mappings = NULL, attachtype = FALSE)
 
 \item{omics}{a vector of omic names, must be the same as names of elements in omicdata, otherwise names of omicdata will be overwritten}
 
-\item{mappings}{mappings containing a gene symbol for each omic type,rownames have to contain column names of the parameter 'omicdata'; column "gene" must be present}
+\item{mappings}{mappings containing a gene symbol for each omic type, rownames have to contain column names of the parameter 'omicdata'; column "gene" must be present; if NULL for a certain omic type, than gene  name will be taken from the column name of the corresponding matrix.}
 
-\item{attachtype}{when TRUE .O will be attached to each variable name, where O is omic type; when FALSE (default) .O is only attached to duplicated names}
+\item{attachtype}{when TRUE .O will be attached to each variable name, where O is omic name (see parameter 'omics'); when FALSE (default) .O is only attached to duplicated names}
+}
+\value{
+an object of class bnInfo
 }
 \description{
 This function constructs an object of class bnInfo which is needed for Bayesian network
-based clustering; see function \link{bnclustOmics}
+based clustering; see function \link{bnclustOmics}. In this object the names and types of omics data are stored as well
+as maappings containing the correspondance between gene names in each omic type and gene names used
+in blacklist and edge penalization matrices in the clustering step. These mappings are helpful for constructing
+such matrices. For example, transcriptome data often includes ensemble IDs and mutation data includes gene names. If we want to
+penalize all interactions which are not found in a specific interactions database, we need to pass an interaction list
+this list usually includes gene names and not ensemble IDs. Mappings pass the information needed to assign the edges between any IDs of gene X
+the specified penalization factor. If some omics types already have the same ID as in interaction list, corresponding mappings can be skipped.
+}
+\examples{
+#with mappings
+bnnames<-bnInfo(toydata,c("b","o","c","c","c"),c("M","CN","T","P","PP"),mappings)
+#no mappings
+bnnames<-bnInfo(simdata,c("b","c"),c("M","T"))
 }

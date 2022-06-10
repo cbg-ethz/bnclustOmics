@@ -1,3 +1,75 @@
+#'Comparing estimated and ground truth membership
+#'
+#'This function compares similarity between two clusterings.
+#'
+#'@param truememb ground truth labels
+#'@param estmemb estimated labels
+#'@return a list containing different measures of similarity between two different clusterings, including accuracy, adjusted Rand index and precision
+#'@import stats
+#'@import clue
+#'@import BiDAG
+#'@import mclust
+#'@import RBGL
+#'@import RColorBrewer
+#'@import graphics
+#'@importFrom plotrix draw.circle
+#'@importFrom graph edgeWeights
+#'@importFrom gRbase is.DAG
+#'@export
+checkmembership <- function(estmemb,truememb) {
+  k<-length(unique(estmemb))
+  relabelmatrix<-matrix(nrow=k,ncol=k) #i row_num label, j col_num estmemb
+  estlabels<-list()
+  truelabels<-list()
+  for (i in 1:k) {
+    truelabels[[i]]<-which(truememb==i)
+  }
+  for (i in 1:k) {
+    estlabels[[i]]<-which(estmemb==i)
+  }
+  for (i in 1:k) {
+    for (j in 1:k) {
+      relabelmatrix[i,j]<-length(which(estlabels[[i]]%in%truelabels[[j]]))
+    }
+  }
+  rowcol<-solve_LSAP(relabelmatrix,maximum = TRUE)
+  res<-list()
+  res$relabel<-as.vector(rowcol)
+  res$ncorr<-0
+  for (j in 1:min(k,k)) {
+    res$ncorr<-res$ncorr+relabelmatrix[j,res$relabel[j]]
+  }
+  res$accuracy<-res$ncorr/length(truememb)
+  res$ARI<-adjustedRandIndex(estmemb,truememb)
+  prec<-precision_clusters(estmemb,truememb)
+  res$precision<-prec[1]
+  res$recall<-prec[2]
+  res$F1<-prec[3]
+  res$relabelmatrix<-relabelmatrix
+
+  return(res)
+}
+#'Relabeling clusters
+#'
+#'When running simulations studies, discovered cluster labels may differ from the ground truth
+#'cluster labels. This functions can be used to perform relabeling in order to compare
+#'discovered graphs to the ground truth graphs correctly.
+#'
+#'@param res object of class 'bnclustOmics'
+#'@param trueclusters ground truth clustering
+#'@return object of class 'bnclustOmics'
+#'@export
+relabelSimulation<-function(res,trueclusters){
+  relab<-checkmembership(clusters(res),trueclusters)$relabel
+  res$DAGs<-relabDAGs(res$DAGs,relab)
+  if(!is.null(res$ep)) {
+    res$ep<-relabDAGs(res$ep,relab)
+  }
+  res$memb<-relabMembership(res$memb,relab)
+  res$lambdas<-relabLambdas(res$lambdas,relab)
+  return(res)
+}
+
 # https://doi.org/10.1038/s41467-018-06867-x
 # author: Kuipers et al.
 propersample <- function(x){if(length(x)==1) x else sample(x,1)}
@@ -85,49 +157,6 @@ reassignsamplesprop <- function(samplescores,numsamps,gamma){
 # author: Kuipers et al.
 comparelik<-function(assignprogress) {
   whichmax<-which.max(unlist(lapply(assignprogress,function(x)x$likel[length(x$likel)])))
-}
-
-
-
-#'Comparing estimated and ground truth membership
-#'
-#'This function compares ground truth cluster labels to estimated cluster labels.
-#'
-#'@param k number of clusters
-#'@param truememb ground truth labels
-#'@param estmemb estimated labels
-#'@import stats
-#'@import clue
-#'@import BiDAG
-#'@import mclust
-#'@import RBGL
-#'@import graph
-#'@import gRbase
-#'@export
-checkmembership <- function(k,truememb,estmemb) {
-  relabelmatrix<-matrix(nrow=k,ncol=k) #i row_num label, j col_num estmemb
-  estlabels<-list()
-  truelabels<-list()
-  for (i in 1:k) {
-    truelabels[[i]]<-which(truememb==i)
-  }
-  for (i in 1:k) {
-    estlabels[[i]]<-which(estmemb==i)
-  }
-  for (i in 1:k) {
-    for (j in 1:k) {
-      relabelmatrix[i,j]<-length(which(estlabels[[i]]%in%truelabels[[j]]))
-    }
-  }
-  rowcol<-solve_LSAP(relabelmatrix,maximum = TRUE)
-  res<-list()
-  res$relabel<-as.vector(rowcol)
-  res$ncorr<-0
-  for (j in 1:min(k,k)) {
-    res$ncorr<-res$ncorr+relabelmatrix[j,res$relabel[j]]
-  }
-  res$relabelmatrix<-relabelmatrix
-  return(res)
 }
 generatetriple<-function(n) {
   resmat<-matrix(nrow=n,ncol=3)
@@ -225,6 +254,70 @@ relabDAGs<-function(estDAGs, changeto) {
   }
   return(newDAGs)
 }
+
+precision_clusters<-function(clusters,true_clusters) {
+  cluster_labels<-unique(clusters)
+  n_clust<-length(cluster_labels)
+  N<-length(clusters)
+
+  cluster_index<-lapply(cluster_labels,single_clusters,clusters)
+  cluster_bins<-lapply(cluster_index,make_bins,true_clusters)
+
+  tot_pairs<-N*(N-1)/2
+  tot_pos<-sum(unlist(lapply(cluster_bins,total_pos_pairs)))
+  tot_neg<-total_neg_pairs(tot_pairs,tot_pos)
+
+  TP<-sum(unlist(lapply(cluster_bins,pairs_TP)))
+  FP<-tot_pos-TP
+  FN<-pairs_FP(cluster_bins,cluster_labels)
+  TN<-tot_neg-FP
+
+  Pr<-TP/(TP+FP)
+  Rec<-TP/(TP+FN)
+  F1<-2*(Pr*Rec)/(Pr+Rec)
+  return(c(Pr,Rec,F1))
+}
+single_clusters<-function(i,clusters) {
+  return(which(clusters==i))
+}
+make_bins<-function(index,true_clusters){
+  return(true_clusters[index])
+}
+total_pos_pairs<-function(cluster_bin){
+  return(choose(length(cluster_bin),2))
+}
+pairs_TP<-function(cluster_bin){
+  taby<-table(cluster_bin)
+  if(length(taby[which(taby>1)])>0) {
+    return(sum(sapply(taby[which(taby>1)],choose,2)))
+  } else{
+    return(0)
+  }
+}
+pairs_FP<-function(cluster_bins,cluster_labels){
+  mm_matrix<-matrix(nrow=length(cluster_labels),
+                    ncol=length(cluster_bins))
+  for(i in 1:length(cluster_bins)) {
+    for(j in cluster_labels) {
+      mm_matrix[i,j]<-length(which(cluster_bins[[i]]==j))
+    }
+  }
+
+  mm_tot<-0
+  n_row<-nrow(mm_matrix)
+
+  for(i in 1:ncol(mm_matrix)) {
+    for(j in 1:(nrow(mm_matrix)-1)) {
+      mm_tot<-mm_tot+mm_matrix[j,i]*sum(mm_matrix[(j+1):n_row,i])
+    }
+  }
+  return(mm_tot)
+}
+total_neg_pairs<-function(tot_pairs,tot_pos) {
+  return(tot_pairs-tot_pos)
+}
+
+
 
 
 

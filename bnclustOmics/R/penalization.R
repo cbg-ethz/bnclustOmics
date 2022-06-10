@@ -1,5 +1,7 @@
 #'Initializing blacklist
+#'
 #'This function can be used to initialize a blacklist matrix for bnclustOmics clustering
+#'
 #'@param bnnames object of class bnInfo; see \link{bnInfo}
 #'@param bldiag logical, defines if diagonal should be blacklisted, TRUE by default
 #'@param intra (optional) a vector of characters defining omic types for which intra-type edges will be blacklisted
@@ -49,7 +51,9 @@ blInit<-function(bnnames,bldiag=TRUE,intra=NULL,interXX=list(from=NULL,to=NULL),
 }
 
 #'Updating  blacklist
+#'
 #'This function can be used to update a blacklist matrix by blacklisting an edge between a pair of variables
+#'
 #'@param blacklist object of class 'blacklist'
 #'@param node1 name of omic variable from which the edge is prohibited
 #'@param node2 name of omic variable to which the edge is prohibited
@@ -62,7 +66,9 @@ blUpdate<-function(blacklist,node1,node2) {
 }
 
 #'Initializing penalization matrix
+#'
 #'This function can be used to initialize a penalization matrix for bnclustOmics clustering
+#'
 #'@param bnnames object of class bnInfo; see \link{bnInfo}
 #'@param pfbase a numeric value more or equal to 1, base penalization factor; 1 by default (no penalization)
 #'@param intpf (optional) a numeric value more or equal to 1, this value will be used to penalize interactions from 'intlist'
@@ -95,12 +101,15 @@ penInit<-function(bnnames,pfbase=1,intpf=pfbase, intlist=NULL,intsame=1, usescor
       penmat<-fillPM(as.matrix(dupgenes),penmat,intsame)
     }
   }
+  diag(penmat)<-pfbase
   rownames(penmat)<-colnames(penmat)<-bnnames$allnamesonebn
   return(penmat)
 }
 
 #'Updating penalization matrix (intra one omics type)
+#'
 #'This function can be used to update an existing penalization matrix
+#'
 #'@param penmat a square penalization matrix; to initialize use \link{penInit}
 #'@param bnnames object of class bnInfo; see \link{bnInfo}
 #'@param type name of omic type
@@ -113,7 +122,7 @@ penInit<-function(bnnames,pfbase=1,intpf=pfbase, intlist=NULL,intsame=1, usescor
 #'@return returns a square matrix containing edge specific penalization factors
 #'@author Polina Suter
 #'@export
-penUpdateIntra<-function(penmat,bnnames,type,intlist,pfbase=2,intpf=1,intsame=1,bi=TRUE) {
+penUpdateIntra<-function(penmat,bnnames,type,intlist,pfbase=2,intpf=1,intsame=1,bi=FALSE) {
 
   allnameslocal<-as.vector(bnnames$allnamesonebn[bnnames$omicranges[[type]]])
   penlocal<-penmat[bnnames$omicranges[[type]],bnnames$omicranges[[type]]]
@@ -138,7 +147,9 @@ penUpdateIntra<-function(penmat,bnnames,type,intlist,pfbase=2,intpf=1,intsame=1,
 }
 
 #'Updating penalization matrix (between two omics types)
+#'
 #'This function can be used to update an existing penalization matrix
+#'
 #'@param penmat a square penalization matrix; to initialize use \link{penInit}
 #'@param bnnames object of class bnInfo; see \link{bnInfo}
 #'@param type1 name of omics type (from)
@@ -152,7 +163,7 @@ penUpdateIntra<-function(penmat,bnnames,type,intlist,pfbase=2,intpf=1,intsame=1,
 #'@return returns a square matrix containing edge specific penalization factors
 #'@author Polina Suter
 #'@export
-penUpdateInter<-function(penmat,bnnames,type1,type2,intlist, pfbase=2, intpf=1,intsame=1,bi=FALSE){
+penUpdateInter<-function(penmat,bnnames,type1,type2,intlist=NULL, pfbase=2, intpf=1,intsame=1,bi=FALSE){
   allnameslocal1<-as.vector(bnnames$allnamesonebn[bnnames$omicranges[[type1]]])
   allnameslocal2<-as.vector(bnnames$allnamesonebn[bnnames$omicranges[[type2]]])
   penlocal12<-penmat[bnnames$omicranges[[type1]],bnnames$omicranges[[type2]]]
@@ -168,25 +179,32 @@ penUpdateInter<-function(penmat,bnnames,type1,type2,intlist, pfbase=2, intpf=1,i
     rownames(penlocal21)<-allgenelocal1
     colnames(penlocal21)<-allgenelocal1
   }
+
+  if(!is.null(intlist)) {
   intlist12<-intlist[which(intlist$gene1%in%allgenelocal1 & intlist$gene2%in%allgenelocal2),]
   if(nrow(intlist)>0) {
     penlocal12<-fillPM(as.matrix(intlist12),penlocal12,intpf)
   }
+  }
 
+  if(!is.null(intlist)) {
   if(bi) {
     intlist21<-intlist[which(intlist$gene1%in%allgenelocal2 & intlist$gene2%in%allgenelocal1),]
     if(nrow(intlist)>0) {
       penlocal21<-fillPM(as.matrix(intlist),penlocal21,intpf)
     }
   }
+  }
 
   if(intsame!=pfbase) {
     dups<-intersect(allgenelocal1,allgenelocal2)
+    if(length(dups>0)) {
     dupgenes<-cbind(dups,dups)
     colnames(dupgenes)<-c("gene1","gene2")
     penlocal12<-fillPM(as.matrix(dupgenes),penlocal12,intsame)
     if(bi) {
       penlocal21<-fillPM(as.matrix(dupgenes),penlocal21,intsame)
+    }
     }
   }
   rownames(penlocal12)<-allnameslocal1

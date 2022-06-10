@@ -2,8 +2,7 @@
 % Please edit documentation in R/penalization.R
 \name{penUpdateIntra}
 \alias{penUpdateIntra}
-\title{Updating penalization matrix (intra one omics type)
-This function can be used to update an existing penalization matrix}
+\title{Updating penalization matrix (intra one omics type)}
 \usage{
 penUpdateIntra(
   penmat,
@@ -13,7 +12,7 @@ penUpdateIntra(
   pfbase = 2,
   intpf = 1,
   intsame = 1,
-  bi = TRUE
+  bi = FALSE
 )
 }
 \arguments{
@@ -37,7 +36,6 @@ penUpdateIntra(
 returns a square matrix containing edge specific penalization factors
 }
 \description{
-Updating penalization matrix (intra one omics type)
 This function can be used to update an existing penalization matrix
 }
 \author{
